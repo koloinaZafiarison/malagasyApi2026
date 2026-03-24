@@ -59,7 +59,6 @@ DATABASES = {
     }
 }
 
-
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Indian/Antananarivo'
 USE_I18N = True

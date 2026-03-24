@@ -8,11 +8,14 @@ import ast
 import re
 from collections import Counter, defaultdict
 from typing import Any, cast
+
+
+from django.conf import settings
+# from .services.autocomplete import AutocompleteService
 from .serializers import AutocompleteRequestSerializer
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "models", "autocomplete", "malagasy_trigram.pkl")
-
-with open(MODEL_PATH, "rb") as f:
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'models/autocomplete', 'malagasy_trigram.pkl')
+with open(MODEL_PATH, 'rb') as f:
     model = pickle.load(f)
 
 

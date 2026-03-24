@@ -5,10 +5,9 @@ import os
 import pickle
 from typing import Any, cast
 # from .services.autocomplete import AutocompleteService
-from .serializers import AutocompleteRequestSerializer
-
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'D:/malagasyApi/models/autocomplete/malagasy_trigram.pkl')
-with open(MODEL_PATH, 'rb') as f:
+# from .serializers import AutocompleteRequestSerializer
+    
+with open('models/autocomplete/malagasy_trigram.pkl', 'rb') as f:
     model = pickle.load(f)
     
 class AutocompleteView(APIView):
@@ -19,7 +18,8 @@ class AutocompleteView(APIView):
         """
         if not hasattr(model, "autocomplete"):
             raise RuntimeError("Le modèle ne supporte pas l'autocomplétion.")
-        suggestions = model.autocomplete(text, top_k)
+        # On suppose ici que autocomplete peut prendre X en entrée, ou que le modèle nécessite la version vectorisée du texte
+        suggestions = model.autocomplete(self, text, top_k)
         return suggestions
         
     def post(self, request):
@@ -32,4 +32,6 @@ class AutocompleteView(APIView):
         # Formater la réponse
         result = [{'word': w, 'prob': p} for w, p in suggestions]
         return Response({'suggestions': result})
+
+# class SentimentCheckView(APIView):
     

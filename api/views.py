@@ -4,10 +4,12 @@ from rest_framework import status
 import os
 import pickle
 from typing import Any, cast
+
+from django.conf import settings
 # from .services.autocomplete import AutocompleteService
 from .serializers import AutocompleteRequestSerializer
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'D:/malagasyApi/models/autocomplete/malagasy_trigram.pkl')
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'models/autocomplete', 'malagasy_trigram.pkl')
 with open(MODEL_PATH, 'rb') as f:
     model = pickle.load(f)
     

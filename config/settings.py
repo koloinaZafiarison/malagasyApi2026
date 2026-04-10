@@ -58,8 +58,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Indian/Antananarivo'
 USE_I18N = True

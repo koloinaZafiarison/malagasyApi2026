@@ -7,3 +7,8 @@ class AutocompleteRequestSerializer(serializers.Serializer):
 class SuggestionSerializer(serializers.Serializer):
     word = serializers.CharField()
     prob = serializers.FloatField()
+
+
+class SentimentSerializer(serializers.Serializer):
+    text = serializers.CharField()
+    sentiment = serializers.CharField(read_only=True)

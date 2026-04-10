@@ -19,3 +19,4 @@ media/
 # IDE
 .vscode/
 .idea/
+model.safetensors

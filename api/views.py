@@ -36,7 +36,7 @@ class AutocompleteView(APIView):
         return Response({'suggestions': result})
 
 # class SentimentCheckView(APIView):
-
+#Speak text to speech Malagasy
 class TTSView(APIView):
     def post(self, request):
         text = request.data.get('text', '').strip()

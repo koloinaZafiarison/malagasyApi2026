@@ -4,6 +4,7 @@ from django.conf import settings
 import requests
 from bs4 import BeautifulSoup
 import urllib3
+from difflib import get_close_matches
 
 CSV_PATH = os.path.join(settings.BASE_DIR, "translator", "data", "dictionnaire.csv")
 df = pd.read_csv(CSV_PATH)
@@ -11,17 +12,67 @@ df = pd.read_csv(CSV_PATH)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# dictionnaire rapide
-word_index = {}
-for _, row in df.iterrows():
-    fr = str(row["Francais"]).lower().strip()
-    mg = str(row["Malagasy"]).lower().strip()
-    en = str(row["Anglais"]).lower().strip()
+def normalize(text):
+    return str(text).lower().strip()
 
-    word_index[fr] = {"fr": fr, "mg": mg, "en": en}
-    word_index[mg] = {"fr": fr, "mg": mg, "en": en}
-    word_index[en] = {"fr": fr, "mg": mg, "en": en}
+#Normalisation du dataset
+def explode_dataset(df):
+    rows = []
 
+    for _, row in df.iterrows():
+        fr = row["Francais"]
+        mg_list = str(row["Malagasy"]).split(",")
+        en = row["Anglais"]
+
+        for mg in mg_list:
+            rows.append({
+                "Francais": normalize(fr),
+                "Malagasy": normalize(mg),
+                "Anglais": normalize(en)
+            })
+
+    return pd.DataFrame(rows)
+
+df = explode_dataset(df)
+
+df["fr_norm"] = df["Francais"]
+df["mg_norm"] = df["Malagasy"]
+df["en_norm"] = df["Anglais"]
+
+
+def search_exact(word, df):
+    word = normalize(word)
+
+    return df[
+        (df["fr_norm"] == word) |
+        (df["mg_norm"] == word) |
+        (df["en_norm"] == word)
+    ]
+
+#recherche sur les voisins 
+def search_fuzzy(word, df, threshold=0.8):
+    word = normalize(word)
+
+    all_words = (
+        df["Francais"].tolist() +
+        df["Malagasy"].tolist() +
+        df["Anglais"].tolist()
+    )
+
+    all_words_norm = [normalize(w) for w in all_words]
+
+    matches = get_close_matches(word, all_words_norm, n=5, cutoff=threshold)
+
+    if not matches:
+        return pd.DataFrame()
+
+    mask = (
+        df["Francais"].str.lower().isin(matches) |
+        df["Malagasy"].str.lower().isin(matches) |
+        df["Anglais"].str.lower().isin(matches)
+    )
+
+    return df[mask]
 
 
 #Fonction qui appelle l'API pour traduire en anglais (fallback)
@@ -59,7 +110,7 @@ def translate_teny_malagasy(word):
     if response.status_code != 200:
         return []
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(response.text, "lxml")
 
     results = []
 
@@ -83,7 +134,7 @@ def translate_teny_malagasy(word):
                 text = ", ".join(
                     a.get_text(strip=True)
                     for a in links
-                    if a.get_text(strip=True)  
+                    if a.get_text(strip=True)
                 )
             else:
                 text = col.get_text(strip=True)
@@ -112,31 +163,47 @@ def get_mg_result(word):
 
     return ", ".join(words) if words else None
 
-#Fonction qui orchestre la traduction
 def translate_word(word):
-    word = word.lower().strip()
+    raw_input = word              # 👈 garder le mot original
+    word = normalize(word)
 
-    # 1. LOCAL MULTILINGUE
-    if word in word_index:
+    # 1. exact match
+    exact = search_exact(word, df)
+    if not exact.empty:
+        row = exact.iloc[0]
+
         return {
-            "fr": word_index[word]["fr"],
-            "mg": word_index[word]["mg"],
-            "en": word_index[word]["en"],
-            "source": "local"
+            "input": raw_input,
+            "matched_field": "exact",
+            "fr": row["Francais"],
+            "mg": row["Malagasy"],
+            "en": row["Anglais"],
+            "source": "Dictionnaire locale"
         }
 
-    # 2. FALLBACK ANGLAIS
-    en = translate_word_to_english_fallback(word, "fr", "en")
+    # 2. fuzzy match
+    fuzzy = search_fuzzy(word, df)
+    if not fuzzy.empty:
+        row = fuzzy.iloc[0]
 
-    # 3. FALLBACK MALAGASY
+        return {
+            "input": raw_input,
+            "matched_field": "fuzzy",
+            "fr": row["Francais"],
+            "mg": row["Malagasy"],
+            "en": row["Anglais"],
+            "source": "Recherche par voisin (fuzzy match)"
+        }
+
+    # 3. fallback
+    en = translate_word_to_english_fallback(word, "fr", "en")
     mg = get_mg_result(word)
 
-    # 4. FALLBACK FR (optionnel)
-    fr = word if word.isalpha() else None
-
     return {
-        "fr": fr or "introuvable",
-        "mg": mg or "introuvable",
-        "en": en or "not found",
-        "source": "api"
+        "input": raw_input,
+        "matched_field": "fallback",
+        "fr": raw_input,
+        "mg": mg if mg else "introuvable",
+        "en": en if en else "introuvable",
+        "source": "Appel API"
     }

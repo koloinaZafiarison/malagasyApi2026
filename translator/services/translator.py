@@ -8,16 +8,21 @@ import urllib3
 CSV_PATH = os.path.join(settings.BASE_DIR, "translator", "data", "dictionnaire.csv")
 df = pd.read_csv(CSV_PATH)
 
-# dictionnaire rapide
-dict_fr = {
-    row["Francais"]: {
-        "mg": row["Malagasy"],
-        "en": row["Anglais"]
-    }
-    for _, row in df.iterrows()
-}
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# dictionnaire rapide
+word_index = {}
+for _, row in df.iterrows():
+    fr = str(row["Francais"]).lower().strip()
+    mg = str(row["Malagasy"]).lower().strip()
+    en = str(row["Anglais"]).lower().strip()
+
+    word_index[fr] = {"fr": fr, "mg": mg, "en": en}
+    word_index[mg] = {"fr": fr, "mg": mg, "en": en}
+    word_index[en] = {"fr": fr, "mg": mg, "en": en}
+
+
 
 #Fonction qui appelle l'API pour traduire en anglais (fallback)
 def translate_word_to_english_fallback(word, source="fr", target="en"):
@@ -111,19 +116,27 @@ def get_mg_result(word):
 def translate_word(word):
     word = word.lower().strip()
 
-    # LOCAL : matching avec le dataset local
-    if word in dict_fr:
+    # 1. LOCAL MULTILINGUE
+    if word in word_index:
         return {
-            "mg": dict_fr[word]["mg"],
-            "en": dict_fr[word]["en"],
+            "fr": word_index[word]["fr"],
+            "mg": word_index[word]["mg"],
+            "en": word_index[word]["en"],
             "source": "local"
         }
 
-    #Fallback si les données locales ne sont pas suffisantes
+    # 2. FALLBACK ANGLAIS
     en = translate_word_to_english_fallback(word, "fr", "en")
+
+    # 3. FALLBACK MALAGASY
     mg = get_mg_result(word)
 
+    # 4. FALLBACK FR (optionnel)
+    fr = word if word.isalpha() else None
+
     return {
-        "mg": mg if mg else "introuvable",
-        "en": en if en else "not found"
+        "fr": fr or "introuvable",
+        "mg": mg or "introuvable",
+        "en": en or "not found",
+        "source": "api"
     }

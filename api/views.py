@@ -12,7 +12,7 @@ from typing import Any, cast
 from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
-from .services.tts import MalagasyTTS
+# from .services.tts import MalagasyTTS
 
 # ----------------------------
 # Chargement des modèles

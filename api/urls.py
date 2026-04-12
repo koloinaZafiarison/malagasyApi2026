@@ -6,9 +6,9 @@ from .views import (
     OrthographeAPIView,
     PhonotactiqueAPIView,
     LemmatizationAPIView,
-    TTSView,
-)
 
+)
+    # TTSView,
 urlpatterns = [
     path('autocomplete/', AutocompleteView.as_view(), name='autocomplete'),
     path('predict-sentiment/', SentimentAPIView.as_view(), name='predict-sentiment'),

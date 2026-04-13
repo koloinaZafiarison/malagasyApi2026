@@ -286,8 +286,22 @@ class PhonotactiqueAPIView(APIView):
     def post(self, request):
         texte = get_text_from_request(request)
         tokens = tokeniser(texte)
-        result = {mot: [e.__dict__ for e in verifier_phonotactique(mot)] for mot in tokens}
-        return Response({'texte': texte, 'phonotactique': result})
+
+        errors = []
+
+        for mot in tokens:
+            for e in verifier_phonotactique(mot):
+                errors.append({
+                    "mot": mot,
+                    "regle": e.regle,
+                    "description": e.description
+                })
+
+        return Response({
+            "texte": texte,
+            "errors": errors,
+            "isValid": len(errors) == 0
+        })
 
 class LemmatizationAPIView(APIView):
     def post(self, request):

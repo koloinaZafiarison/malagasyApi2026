@@ -6,14 +6,15 @@ from .views import (
     OrthographeAPIView,
     PhonotactiqueAPIView,
     LemmatizationAPIView,
+    TTSView,
 
 )
-    # TTSView,
+
 urlpatterns = [
     path('autocomplete/', AutocompleteView.as_view(), name='autocomplete'),
     path('predict-sentiment/', SentimentAPIView.as_view(), name='predict-sentiment'),
     path('orthographe/', OrthographeAPIView.as_view(), name='orthographe'),
     path('phonotactique/', PhonotactiqueAPIView.as_view(), name='phonotactique'),
     path('lemmatisation/', LemmatizationAPIView.as_view(), name='lemmatisation'),
-    # path('tts/', TTSView.as_view(), name='tts'),
+    path('tts/', TTSView.as_view(), name='tts'),
 ]

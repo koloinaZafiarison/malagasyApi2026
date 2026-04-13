@@ -1,4 +1,4 @@
-"""import io
+import io
 import os
 from typing import Any, ClassVar, Optional, cast
 import torch
@@ -71,4 +71,4 @@ class MalagasyTTS:
         waveform = output.squeeze().cpu().numpy()
         buffer = io.BytesIO()
         sf.write(buffer, waveform, self.sample_rate, format='WAV')
-        return buffer.getvalue()"""
+        return buffer.getvalue()

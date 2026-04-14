@@ -6,7 +6,7 @@ from .views import (
     OrthographeAPIView,
     PhonotactiqueAPIView,
     LemmatizationAPIView,
-    # TTSView,
+    TTSView,
 )
 
 
@@ -16,5 +16,5 @@ urlpatterns = [
     path('orthographe/', OrthographeAPIView.as_view(), name='orthographe'),
     path('phonotactique/', PhonotactiqueAPIView.as_view(), name='phonotactique'),
     path('lemmatisation/', LemmatizationAPIView.as_view(), name='lemmatisation'),
-    # path('tts/', TTSView.as_view(), name='tts'),
+    path('tts/', TTSView.as_view(), name='tts'),
 ]

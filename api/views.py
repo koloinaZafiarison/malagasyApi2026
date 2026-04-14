@@ -12,66 +12,36 @@ from typing import Any, cast
 from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
-# from .services.tts import MalagasyTTS
+from .services.tts import MalagasyTTS
 import requests
 
 # ----------------------------
-# Fonctions de chargement paresseux des modèles
+# Chargement des modèles
 # ----------------------------
 
 BASE_URL = "https://huggingface.co/DisMisa/sentiment-check/resolve/main"
 
-def _load_pickle_model(filename: str):
-    """Télécharge et charge un modèle pickle depuis Hugging Face"""
+def load_pickle_model(filename):
     url = f"{BASE_URL}/{filename}"
+
     response = requests.get(url)
     response.raise_for_status()
+
     return pickle.loads(response.content)
 
-# Variables globales (initialisées à None)
-_trigram_model = None
-_sentiment_data = None
-_nlp_model = None
+model = load_pickle_model("malagasy_trigram.pkl")
+sentiment_data = load_pickle_model("sentiment_model.pkl")
+modele = load_pickle_model("modele_nlp_malagasy.pkl")
 
-def get_trigram_model():
-    global _trigram_model
-    if _trigram_model is None:
-        _trigram_model = _load_pickle_model("malagasy_trigram.pkl")
-        # Conversion si nécessaire
-        if isinstance(_trigram_model, dict) and {"n", "vocab", "ngrams"}.issubset(_trigram_model.keys()):
-            _trigram_model = MalagasyNGramPredictor.from_state(_trigram_model)
-    return _trigram_model
 
-def get_sentiment_data():
-    global _sentiment_data
-    if _sentiment_data is None:
-        _sentiment_data = _load_pickle_model("sentiment_model.pkl")
-    return _sentiment_data
-
-def get_nlp_model():
-    global _nlp_model
-    if _nlp_model is None:
-        _nlp_model = _load_pickle_model("modele_nlp_malagasy.pkl")
-    return _nlp_model
-
-# Accès aux sous-composants NLP (via des propriétés ou fonctions)
-def get_dictionnaire():
-    return get_nlp_model()["DICTIONNAIRE"]
-
-def get_racines_teny():
-    return get_nlp_model()["RACINES_TENY"]
-
-def get_mot_vers_racine():
-    return get_nlp_model()["MOT_VERS_RACINE"]
-
-def get_dico_list():
-    return get_nlp_model()["DICO_LIST"]
-
-def get_stopwords_mg():
-    return get_nlp_model()["STOPWORDS_MG"]
+DICTIONNAIRE    = modele["DICTIONNAIRE"]
+RACINES_TENY    = modele["RACINES_TENY"]
+MOT_VERS_RACINE = modele["MOT_VERS_RACINE"]
+DICO_LIST       = modele["DICO_LIST"]
+STOPWORDS_MG    = modele["STOPWORDS_MG"]
 
 # ----------------------------
-# Fonctions utilitaires (adaptées avec chargement paresseux)
+# Fonctions utilitaires
 # ----------------------------
 def tokeniser(texte: str) -> List[str]:
     """Tokenizer simple du texte malagasy"""
@@ -89,19 +59,17 @@ def tokeniser(texte: str) -> List[str]:
     return tokens
 
 def est_correct(mot: str) -> bool:
-    return mot.lower().strip() in get_dictionnaire()
+    return mot.lower().strip() in DICTIONNAIRE
 
 def suggerer(mot: str, nb: int = 3) -> List[tuple]:
     from rapidfuzz import process, fuzz
-    dico = get_dico_list()
-    resultats = process.extract(mot.lower().strip(), dico, scorer=fuzz.ratio, limit=nb)
+    resultats = process.extract(mot.lower().strip(), DICO_LIST, scorer=fuzz.ratio, limit=nb)
     return [(m, s) for m, s, _ in resultats]
 
 def corriger_texte(texte: str) -> Dict[str, List[tuple]]:
-    stopwords = get_stopwords_mg()
     erreurs = {}
     for mot in set(tokeniser(texte)):
-        if mot in stopwords:
+        if mot in STOPWORDS_MG:
             continue
         if not est_correct(mot):
             erreurs[mot] = suggerer(mot)
@@ -122,7 +90,7 @@ REGLES_PHONOTACTIQUES = [
 ]
 
 def verifier_phonotactique(mot: str) -> List[ErreurPhono]:
-    if mot.lower() in get_dictionnaire():
+    if mot.lower() in DICTIONNAIRE:
         return []
     erreurs = []
     for regle in REGLES_PHONOTACTIQUES:
@@ -132,18 +100,26 @@ def verifier_phonotactique(mot: str) -> List[ErreurPhono]:
 
 def lemmatiser(mot: str) -> Dict[str, str]:
     mot_c = mot.lower().strip()
-    mot_vers_racine = get_mot_vers_racine()
-    racines_teny = get_racines_teny()
-    if mot_c in mot_vers_racine:
-        return {"racine": mot_vers_racine[mot_c], "methode": "lookup_direct"}
-    if mot_c in racines_teny:
+    if mot_c in MOT_VERS_RACINE:
+        return {"racine": MOT_VERS_RACINE[mot_c], "methode": "lookup_direct"}
+    if mot_c in RACINES_TENY:
         return {"racine": mot_c, "methode": "racine_directe"}
     return {"racine": mot_c, "methode": "non_trouvé"}
 
 # ----------------------------
-# Classe MalagasyNGramPredictor (inchangée)
+# API Views
 # ----------------------------
+def get_text_from_request(request) -> str:
+    """Récupère le texte depuis la requête POST (texte ou text)"""
+    return request.data.get('texte') or request.data.get('text', '')
+
+
 class MalagasyNGramPredictor:
+    """
+    Reconstitution légère du modèle entraîné dans le notebook.
+    Charge le format sérialisé avec clés: n, smoothing, vocab, ngrams, etc.
+    """
+
     def __init__(self):
         self.n = 3
         self.smoothing = 1.0
@@ -170,6 +146,7 @@ class MalagasyNGramPredictor:
             for k, v in serialized_ngrams.items():
                 context = ast.literal_eval(k) if isinstance(k, str) else tuple(k)
                 predictor.ngrams[tuple(context)] = Counter(v)
+
         return predictor
 
     def tokenize(self, text: str) -> list[str]:
@@ -209,56 +186,93 @@ class MalagasyNGramPredictor:
             return []
         return self.predict(tokens, top_k)
 
-# ----------------------------
-# Vues API (avec chargement paresseux)
-# ----------------------------
-def get_text_from_request(request) -> str:
-    return request.data.get('texte') or request.data.get('text', '')
+
+if isinstance(model, dict) and {"n", "vocab", "ngrams"}.issubset(model.keys()):
+    model = MalagasyNGramPredictor.from_state(model)
+
 
 class AutocompleteView(APIView):
+
+    @staticmethod
+    def _autocomplete_from_dict(ngram_data: dict[str, dict[str, int]], text: str, top_k: int = 5):
+        """
+        Fallback pour les modèles sérialisés en dictionnaire:
+        {mot_contexte: {mot_suivant: frequence}}.
+        """
+        last_word = (text or "").strip().split()
+        if not last_word:
+            return []
+
+        context = last_word[-1].lower()
+        next_words = ngram_data.get(context, {})
+        if not next_words:
+            return []
+
+        total = sum(next_words.values())
+        if total <= 0:
+            return []
+
+        ranked = sorted(next_words.items(), key=lambda item: item[1], reverse=True)[:top_k]
+        return [(word, freq / total) for word, freq in ranked]
     def predict_next(self, text: str, top_k: int = 5):
-        model = get_trigram_model()
+        """
+        Predit les prochaines suggestions de mots.
+        """
         if hasattr(model, "autocomplete"):
             return model.autocomplete(text, top_k)
+
         raise RuntimeError("Format de modèle non supporté pour l'autocomplétion.")
 
     def post(self, request):
         serializer = AutocompleteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = cast(dict[str, Any], serializer.validated_data)
+
         text = str(validated_data["text"])
         top_k = int(validated_data.get("top_k", 5))
         suggestions = self.predict_next(text, top_k)
+
+        # Formater la réponse
         result = [{"word": w, "prob": p} for w, p in suggestions]
         return Response({"suggestions": result}, status=status.HTTP_200_OK)
 
-# class TTSView(APIView):
-#     def post(self, request):
-#         text = request.data.get("text", "").strip()
-#         if not text:
-#             return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
-#         try:
-#             tts = MalagasyTTS()
-#             audio_bytes = tts.synthesize(text)
-#             return HttpResponse(audio_bytes, content_type="audio/wav")
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class TTSView(APIView):
+    def post(self, request):
+        text = request.data.get("text", "").strip()
+        if not text:
+            return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            tts = MalagasyTTS()
+            audio_bytes = tts.synthesize(text)
+            return HttpResponse(audio_bytes, content_type="audio/wav")
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class SentimentAPIView(APIView):
-    @property
-    def sentiment_data(self):
-        return get_sentiment_data()
+    model = sentiment_data['model']
+    vectorizer = sentiment_data['vectorizer']
+    le = sentiment_data['label_encoder']
+
+    @staticmethod
+    def preprocess_text(text: str) -> str:
+        return text.lower().strip()
+
+    @classmethod
+    def predict_sentiment(cls, text: str):
+        clean_text = cls.preprocess_text(text)
+        X_new = cls.vectorizer.transform([clean_text])
+        prediction = cls.model.predict(X_new)
+        return cls.le.inverse_transform(prediction)[0]
 
     def post(self, request):
         serializer = SentimentSerializer(data=request.data)
         if serializer.is_valid():
             validated_data = cast(dict[str, Any], serializer.validated_data)
             text = str(validated_data["text"])
-            data = self.sentiment_data
-            clean_text = text.lower().strip()
-            X_new = data['vectorizer'].transform([clean_text])
-            prediction = data['model'].predict(X_new)
-            sentiment = data['label_encoder'].inverse_transform(prediction)[0]
+            sentiment = self.predict_sentiment(text)
             return Response({'text': text, 'sentiment': sentiment})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -272,7 +286,9 @@ class PhonotactiqueAPIView(APIView):
     def post(self, request):
         texte = get_text_from_request(request)
         tokens = tokeniser(texte)
+
         errors = []
+
         for mot in tokens:
             for e in verifier_phonotactique(mot):
                 errors.append({
@@ -280,6 +296,7 @@ class PhonotactiqueAPIView(APIView):
                     "regle": e.regle,
                     "description": e.description
                 })
+
         return Response({
             "texte": texte,
             "errors": errors,

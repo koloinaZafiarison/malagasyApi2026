@@ -12,7 +12,7 @@ from typing import Any, cast
 from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
-from .services.tts import MalagasyTTS
+# from .services.tts import MalagasyTTS
 import requests
 
 # ----------------------------
@@ -232,17 +232,17 @@ class AutocompleteView(APIView):
         result = [{"word": w, "prob": p} for w, p in suggestions]
         return Response({"suggestions": result}, status=status.HTTP_200_OK)
 
-class TTSView(APIView):
-    def post(self, request):
-        text = request.data.get("text", "").strip()
-        if not text:
-            return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            tts = MalagasyTTS()
-            audio_bytes = tts.synthesize(text)
-            return HttpResponse(audio_bytes, content_type="audio/wav")
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# class TTSView(APIView):
+#     def post(self, request):
+#         text = request.data.get("text", "").strip()
+#         if not text:
+#             return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
+#         try:
+#             tts = MalagasyTTS()
+#             audio_bytes = tts.synthesize(text)
+#             return HttpResponse(audio_bytes, content_type="audio/wav")
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class SentimentAPIView(APIView):
     @property

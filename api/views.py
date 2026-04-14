@@ -1,4 +1,4 @@
-"""from rest_framework.views import APIView
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
@@ -13,27 +13,26 @@ from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
 from .services.tts import MalagasyTTS
-
+import requests
 
 # ----------------------------
 # Chargement des modèles
 # ----------------------------
-MODEL_PATH = os.path.join(settings.BASE_DIR, 'models/autocomplete/malagasy_trigram.pkl')
-with open(MODEL_PATH, 'rb') as f:
-    model = pickle.load(f)
 
-MODEL_PATH_SENTIMENT = os.path.join(settings.BASE_DIR, 'models', 'sentimentCheck', 'sentiment_model.pkl')
-with open(MODEL_PATH_SENTIMENT, 'rb') as f:
-    sentiment_data = pickle.load(f)
+BASE_URL = "https://huggingface.co/DisMisa/sentiment-check/resolve/main"
 
+def load_pickle_model(filename):
+    url = f"{BASE_URL}/{filename}"
 
-MODEL_PATH_SENTIMENT = os.path.join(settings.BASE_DIR, 'models/sentimentCheck/sentiment_model.pkl')
-with open(MODEL_PATH_SENTIMENT, 'rb') as f:
-    sentiment_data = pickle.load(f)
+    response = requests.get(url)
+    response.raise_for_status()
 
-MODEL_PATH_NLP_MLG = os.path.join(settings.BASE_DIR, 'models/nlp-malagasy/modele_nlp_malagasy.pkl')
-with open(MODEL_PATH_NLP_MLG, "rb") as f:
-    modele = pickle.load(f)
+    return pickle.loads(response.content)
+
+model = load_pickle_model("malagasy_trigram.pkl")
+sentiment_data = load_pickle_model("sentiment_model.pkl")
+modele = load_pickle_model("modele_nlp_malagasy.pkl")
+
 
 DICTIONNAIRE    = modele["DICTIONNAIRE"]
 RACINES_TENY    = modele["RACINES_TENY"]
@@ -45,7 +44,7 @@ STOPWORDS_MG    = modele["STOPWORDS_MG"]
 # Fonctions utilitaires
 # ----------------------------
 def tokeniser(texte: str) -> List[str]:
-    # Tokenizer simple du texte malagasy
+    """Tokenizer simple du texte malagasy"""
     texte = texte.replace("\u2019", "'").replace("\u2018", "'")
     tokens = []
     for bloc in re.split(r'[\s,;:!?."()\n]+', texte):
@@ -111,15 +110,15 @@ def lemmatiser(mot: str) -> Dict[str, str]:
 # API Views
 # ----------------------------
 def get_text_from_request(request) -> str:
-    # Récupère le texte depuis la requête POST (texte ou text)
+    """Récupère le texte depuis la requête POST (texte ou text)"""
     return request.data.get('texte') or request.data.get('text', '')
 
 
 class MalagasyNGramPredictor:
-    
-    # Reconstitution légère du modèle entraîné dans le notebook.
-    # Charge le format sérialisé avec clés: n, smoothing, vocab, ngrams, etc.
-    
+    """
+    Reconstitution légère du modèle entraîné dans le notebook.
+    Charge le format sérialisé avec clés: n, smoothing, vocab, ngrams, etc.
+    """
 
     def __init__(self):
         self.n = 3
@@ -196,10 +195,10 @@ class AutocompleteView(APIView):
 
     @staticmethod
     def _autocomplete_from_dict(ngram_data: dict[str, dict[str, int]], text: str, top_k: int = 5):
-        #
-        # Fallback pour les modèles sérialisés en dictionnaire:
-        # {mot_contexte: {mot_suivant: frequence}}.
-        # 
+        """
+        Fallback pour les modèles sérialisés en dictionnaire:
+        {mot_contexte: {mot_suivant: frequence}}.
+        """
         last_word = (text or "").strip().split()
         if not last_word:
             return []
@@ -216,9 +215,9 @@ class AutocompleteView(APIView):
         ranked = sorted(next_words.items(), key=lambda item: item[1], reverse=True)[:top_k]
         return [(word, freq / total) for word, freq in ranked]
     def predict_next(self, text: str, top_k: int = 5):
-        
-        # Predit les prochaines suggestions de mots.
-        
+        """
+        Predit les prochaines suggestions de mots.
+        """
         if hasattr(model, "autocomplete"):
             return model.autocomplete(text, top_k)
 
@@ -310,4 +309,3 @@ class LemmatizationAPIView(APIView):
         tokens = tokeniser(texte)
         result = {mot: lemmatiser(mot) for mot in tokens}
         return Response({'texte': texte, 'lemmes': result})
-        """

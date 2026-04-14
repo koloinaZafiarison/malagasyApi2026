@@ -1,17 +1,5 @@
 import os
-import sys
-import logging
-
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logging.info("WSGI: début du chargement")
+from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-
-try:
-    from django.core.wsgi import get_wsgi_application
-    logging.info("WSGI: appel à get_wsgi_application()")
-    application = get_wsgi_application()
-    logging.info("WSGI: application créée avec succès")
-except Exception as e:
-    logging.exception("WSGI: erreur fatale")
-    raise
+application = get_wsgi_application()

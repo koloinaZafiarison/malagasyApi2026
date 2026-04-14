@@ -1,16 +1,17 @@
-"""
-WSGI config for config project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
-"""
-
 import os
+import sys
+import logging
 
-from django.core.wsgi import get_wsgi_application
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.info("WSGI: début du chargement")
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-application = get_wsgi_application()
+try:
+    from django.core.wsgi import get_wsgi_application
+    logging.info("WSGI: appel à get_wsgi_application()")
+    application = get_wsgi_application()
+    logging.info("WSGI: application créée avec succès")
+except Exception as e:
+    logging.exception("WSGI: erreur fatale")
+    raise

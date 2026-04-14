@@ -1,4 +1,4 @@
-from rest_framework.views import APIView
+"""from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
@@ -45,7 +45,7 @@ STOPWORDS_MG    = modele["STOPWORDS_MG"]
 # Fonctions utilitaires
 # ----------------------------
 def tokeniser(texte: str) -> List[str]:
-    """Tokenizer simple du texte malagasy"""
+    # Tokenizer simple du texte malagasy
     texte = texte.replace("\u2019", "'").replace("\u2018", "'")
     tokens = []
     for bloc in re.split(r'[\s,;:!?."()\n]+', texte):
@@ -111,15 +111,15 @@ def lemmatiser(mot: str) -> Dict[str, str]:
 # API Views
 # ----------------------------
 def get_text_from_request(request) -> str:
-    """Récupère le texte depuis la requête POST (texte ou text)"""
+    # Récupère le texte depuis la requête POST (texte ou text)
     return request.data.get('texte') or request.data.get('text', '')
 
 
 class MalagasyNGramPredictor:
-    """
-    Reconstitution légère du modèle entraîné dans le notebook.
-    Charge le format sérialisé avec clés: n, smoothing, vocab, ngrams, etc.
-    """
+    
+    # Reconstitution légère du modèle entraîné dans le notebook.
+    # Charge le format sérialisé avec clés: n, smoothing, vocab, ngrams, etc.
+    
 
     def __init__(self):
         self.n = 3
@@ -196,10 +196,10 @@ class AutocompleteView(APIView):
 
     @staticmethod
     def _autocomplete_from_dict(ngram_data: dict[str, dict[str, int]], text: str, top_k: int = 5):
-        """
-        Fallback pour les modèles sérialisés en dictionnaire:
-        {mot_contexte: {mot_suivant: frequence}}.
-        """
+        #
+        # Fallback pour les modèles sérialisés en dictionnaire:
+        # {mot_contexte: {mot_suivant: frequence}}.
+        # 
         last_word = (text or "").strip().split()
         if not last_word:
             return []
@@ -216,9 +216,9 @@ class AutocompleteView(APIView):
         ranked = sorted(next_words.items(), key=lambda item: item[1], reverse=True)[:top_k]
         return [(word, freq / total) for word, freq in ranked]
     def predict_next(self, text: str, top_k: int = 5):
-        """
-        Predit les prochaines suggestions de mots.
-        """
+        
+        # Predit les prochaines suggestions de mots.
+        
         if hasattr(model, "autocomplete"):
             return model.autocomplete(text, top_k)
 
@@ -310,3 +310,4 @@ class LemmatizationAPIView(APIView):
         tokens = tokeniser(texte)
         result = {mot: lemmatiser(mot) for mot in tokens}
         return Response({'texte': texte, 'lemmes': result})
+        """

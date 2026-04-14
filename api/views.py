@@ -12,7 +12,7 @@ from typing import Any, cast
 from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
-# from .services.tts import MalagasyTTS
+from .services.tts import MalagasyTTS
 
 # ----------------------------
 # Chargement des modèles
@@ -237,7 +237,7 @@ class AutocompleteView(APIView):
         return Response({"suggestions": result}, status=status.HTTP_200_OK)
 
 
-"""class TTSView(APIView):
+class TTSView(APIView):
     def post(self, request):
         text = request.data.get("text", "").strip()
         if not text:
@@ -249,7 +249,7 @@ class AutocompleteView(APIView):
             return HttpResponse(audio_bytes, content_type="audio/wav")
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-"""
+
 
 class SentimentAPIView(APIView):
     model = sentiment_data['model']

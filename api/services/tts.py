@@ -73,7 +73,7 @@ class MalagasyTTS:
         sf.write(buffer, waveform, self.sample_rate, format='WAV')
         return buffer.getvalue()"""
 
-import io
+"""import io
 from typing import Any, ClassVar, Optional, cast
 
 import torch
@@ -125,4 +125,4 @@ class MalagasyTTS:
         buffer = io.BytesIO()
         sf.write(buffer, waveform, self.sample_rate, format="WAV")
 
-        return buffer.getvalue()
+        return buffer.getvalue()"""

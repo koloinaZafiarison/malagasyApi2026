@@ -1,6 +1,7 @@
 # QUICKSILVER 🤖
 # Lien de deploiement Back-End : https://malagasyapi2026.onrender.com
 
+# Lien dépôt principale : https://github.com/HeriniainaRas/Editeur_Text_Malagasy_Front_End.git
 
 # Éditeur Teny Malagasy — Backend Django
 

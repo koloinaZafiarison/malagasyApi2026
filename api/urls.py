@@ -7,7 +7,6 @@ from .views import (
     PhonotactiqueAPIView,
     LemmatizationAPIView,
     TTSView,
-
 )
 
 urlpatterns = [

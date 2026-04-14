@@ -1,4 +1,4 @@
-import io
+"""import io
 import os
 from typing import Any, ClassVar, Optional, cast
 import torch
@@ -71,4 +71,58 @@ class MalagasyTTS:
         waveform = output.squeeze().cpu().numpy()
         buffer = io.BytesIO()
         sf.write(buffer, waveform, self.sample_rate, format='WAV')
+        return buffer.getvalue()"""
+
+import io
+from typing import Any, ClassVar, Optional, cast
+
+import torch
+import soundfile as sf
+from transformers import VitsModel, AutoTokenizer
+
+# Integration modele text to speech Malagasy
+class MalagasyTTS:
+    _instance: ClassVar[Optional["MalagasyTTS"]] = None
+
+    device: str
+    model: VitsModel
+    tokenizer: Any
+    sample_rate: int
+
+    MODEL_ID: ClassVar[str] = "DisMisa/sentiment-check"
+
+    def __new__(cls):
+        if cls._instance is None:
+            instance = cast("MalagasyTTS", super().__new__(cls))
+
+            # Device selection
+            instance.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+            print("Loading model from Hugging Face...")
+
+            # Load model DIRECTLY from Hugging Face Hub
+            instance.model = VitsModel.from_pretrained(cls.MODEL_ID)
+            instance.tokenizer = AutoTokenizer.from_pretrained(cls.MODEL_ID)
+
+            # Move model to device
+            instance.model = instance.model.to(instance.device)
+
+            # Sample rate from config
+            instance.sample_rate = instance.model.config.sampling_rate
+
+            cls._instance = instance
+
+        return cast("MalagasyTTS", cls._instance)
+
+    def synthesize(self, text: str) -> bytes:
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
+
+        with torch.no_grad():
+            output = self.model(**inputs).waveform
+
+        waveform = output.squeeze().cpu().numpy()
+
+        buffer = io.BytesIO()
+        sf.write(buffer, waveform, self.sample_rate, format="WAV")
+
         return buffer.getvalue()

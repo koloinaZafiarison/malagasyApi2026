@@ -77,7 +77,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://malagasy-editor.vercel.app",
 ]
-CORS_ALLOW_ALL_ORIGINS = True  # Mettre False en production
+CORS_ALLOW_ALL_ORIGINS = False  # Mettre False en production
 
 # Django REST Framework
 # REST_FRAMEWORK = {

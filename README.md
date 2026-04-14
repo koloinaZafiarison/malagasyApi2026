@@ -1,3 +1,7 @@
+# QUICKSILVER 🤖
+# Lien de deploiement Back-End : https://malagasyapi2026.onrender.com
+
+
 # Éditeur Teny Malagasy — Backend Django
 
 API REST construite avec Django REST Framework pour l'éditeur de texte malagasy augmenté par l'IA.

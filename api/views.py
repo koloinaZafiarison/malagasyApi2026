@@ -14,26 +14,24 @@ from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
 from .services.tts import MalagasyTTS
 
-
 # ----------------------------
 # Chargement des modèles
 # ----------------------------
-MODEL_PATH = os.path.join(settings.BASE_DIR, 'models/autocomplete/malagasy_trigram.pkl')
-with open(MODEL_PATH, 'rb') as f:
-    model = pickle.load(f)
 
-MODEL_PATH_SENTIMENT = os.path.join(settings.BASE_DIR, 'models', 'sentimentCheck', 'sentiment_model.pkl')
-with open(MODEL_PATH_SENTIMENT, 'rb') as f:
-    sentiment_data = pickle.load(f)
+BASE_URL = "https://huggingface.co/DisMisa/sentiment-check/resolve/main"
 
+def load_pickle_model(filename):
+    url = f"{BASE_URL}/{filename}"
 
-MODEL_PATH_SENTIMENT = os.path.join(settings.BASE_DIR, 'models/sentimentCheck/sentiment_model.pkl')
-with open(MODEL_PATH_SENTIMENT, 'rb') as f:
-    sentiment_data = pickle.load(f)
+    response = requests.get(url)
+    response.raise_for_status()
 
-MODEL_PATH_NLP_MLG = os.path.join(settings.BASE_DIR, 'models/nlp-malagasy/modele_nlp_malagasy.pkl')
-with open(MODEL_PATH_NLP_MLG, "rb") as f:
-    modele = pickle.load(f)
+    return pickle.loads(response.content)
+
+model = load_pickle_model("malagasy_trigram.pkl")
+sentiment_data = load_pickle_model("sentiment_model.pkl")
+modele = load_pickle_model("modele_nlp_malagasy.pkl")
+
 
 DICTIONNAIRE    = modele["DICTIONNAIRE"]
 RACINES_TENY    = modele["RACINES_TENY"]

@@ -13,6 +13,7 @@ from typing import List, Dict
 from dataclasses import dataclass
 from .serializers import AutocompleteRequestSerializer, SentimentSerializer
 from .services.tts import MalagasyTTS
+import requests
 
 # ----------------------------
 # Chargement des modèles
